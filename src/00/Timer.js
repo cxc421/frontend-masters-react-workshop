@@ -1,14 +1,20 @@
-import * as React from 'react';
-import { useReducer } from 'react';
-import { faPlay, faPause } from '@fortawesome/free-solid-svg-icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { ProgressCircle } from '../ProgressCircle';
+import * as React from "react";
+import { useReducer } from "react";
+import { faPlay, faPause } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { ProgressCircle } from "../ProgressCircle";
 
 // Import the timer machine and its initial state:
 // import { ... } from './timerMachine';
+import { timerMachine, timerMachineConfig } from "./timerMachine";
 
 export const Timer = () => {
-  const state = ''; // delete me - useReducer instead!
+  const [state, dispatch] = useReducer(
+    timerMachine,
+    timerMachineConfig.initial
+  );
+
+  console.log({ state });
 
   const { duration, elapsed, interval } = {
     duration: 60,
@@ -22,9 +28,9 @@ export const Timer = () => {
       data-state={state}
       style={{
         // @ts-ignore
-        '--duration': duration,
-        '--elapsed': elapsed,
-        '--interval': interval,
+        "--duration": duration,
+        "--elapsed": elapsed,
+        "--interval": interval,
       }}
     >
       <header>
@@ -33,42 +39,29 @@ export const Timer = () => {
       <ProgressCircle />
       <div className="display">
         <div className="label">{state}</div>
-        <div
-          className="elapsed"
-          onClick={() => {
-            // ...
-          }}
-        >
+        <div className="elapsed" onClick={() => dispatch({ type: "TOGGLE" })}>
           {Math.ceil(duration - elapsed)}
         </div>
         <div className="controls">
-          <button
-            onClick={() => {
-              // ...
-            }}
-          >
-            Reset
-          </button>
+          <button onClick={() => dispatch({ type: "RESET" })}>Reset</button>
         </div>
       </div>
       <div className="actions">
-        <button
-          onClick={() => {
-            // ...
-          }}
-          title="Pause timer"
-        >
-          <FontAwesomeIcon icon={faPause} />
-        </button>
-
-        <button
-          onClick={() => {
-            // ...
-          }}
-          title="Start timer"
-        >
-          <FontAwesomeIcon icon={faPlay} />
-        </button>
+        {state === "running" ? (
+          <button
+            onClick={() => dispatch({ type: "TOGGLE" })}
+            title="Pause timer"
+          >
+            <FontAwesomeIcon icon={faPause} />
+          </button>
+        ) : (
+          <button
+            onClick={() => dispatch({ type: "TOGGLE" })}
+            title="Start timer"
+          >
+            <FontAwesomeIcon icon={faPlay} />
+          </button>
+        )}
       </div>
     </div>
   );
