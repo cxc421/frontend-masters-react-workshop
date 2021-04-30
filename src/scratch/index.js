@@ -174,7 +174,7 @@ import { useReducer } from "react";
 //   );
 // };
 
-const alarmMachine = {
+const alarmMachine = createMachine({
   initial: "inactive",
   states: {
     inactive: {
@@ -194,16 +194,19 @@ const alarmMachine = {
       },
     },
   },
-};
+});
 
 const alarmReducer = (state, event) => {
-  const nextState = alarmMachine.states[state].on[event.type] || state;
+  const nextState = alarmMachine.transition(state, event);
   return nextState;
 };
 
 export const ScratchApp = () => {
   // inactive, active, pending
-  const [status, dispatch] = useReducer(alarmReducer, alarmMachine.initial);
+  const [{ value: status }, dispatch] = useReducer(
+    alarmReducer,
+    alarmMachine.initialState
+  );
 
   useEffect(() => {
     if (status === "pending") {
