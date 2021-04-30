@@ -196,24 +196,15 @@ const alarmMachine = createMachine({
   },
 });
 
-const alarmReducer = (state, event) => {
-  const nextState = alarmMachine.transition(state, event);
-  return nextState;
-};
-
 export const ScratchApp = () => {
-  // inactive, active, pending
-  const [{ value: status }, dispatch] = useReducer(
-    alarmReducer,
-    alarmMachine.initialState
-  );
+  const [{ value: status }, send] = useMachine(alarmMachine);
 
   useEffect(() => {
     if (status === "pending") {
-      const timer = setTimeout(() => dispatch({ type: "SUCCESS" }), 2000);
+      const timer = setTimeout(() => send({ type: "SUCCESS" }), 2000);
       return () => clearTimeout(timer);
     }
-  }, [status]);
+  }, [status, send]);
 
   return (
     <div className="scratch">
@@ -231,7 +222,7 @@ export const ScratchApp = () => {
             opacity: status === "pending" ? 0.5 : 1,
           }}
           onClick={() => {
-            dispatch({ type: "TOGGLE" });
+            send({ type: "TOGGLE" });
           }}
         ></div>
       </div>
