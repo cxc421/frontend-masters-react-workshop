@@ -174,37 +174,44 @@ import { useReducer } from "react";
 //   );
 // };
 
-const alarmMachine = createMachine({
-  initial: "inactive",
-  context: {
-    count: 0,
-  },
-  states: {
-    inactive: {
-      on: {
-        TOGGLE: {
-          target: "pending",
-          actions: assign({
-            count: (context, event) => {
-              return context.count + 1;
-            },
-          }),
+const alarmMachine = createMachine(
+  {
+    initial: "inactive",
+    context: {
+      count: 0,
+    },
+    states: {
+      inactive: {
+        on: {
+          TOGGLE: {
+            target: "pending",
+            actions: "increment",
+          },
+        },
+      },
+      pending: {
+        on: {
+          SUCCESS: "active",
+          TOGGLE: "inactive",
+        },
+      },
+      active: {
+        on: {
+          TOGGLE: "inactive",
         },
       },
     },
-    pending: {
-      on: {
-        SUCCESS: "active",
-        TOGGLE: "inactive",
-      },
-    },
-    active: {
-      on: {
-        TOGGLE: "inactive",
-      },
-    },
   },
-});
+  {
+    actions: {
+      increment: assign({
+        count(context, event) {
+          return context.count + 1;
+        },
+      }),
+    },
+  }
+);
 
 export const ScratchApp = () => {
   const [
