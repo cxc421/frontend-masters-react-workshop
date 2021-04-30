@@ -176,10 +176,20 @@ import { useReducer } from "react";
 
 const alarmMachine = createMachine({
   initial: "inactive",
+  context: {
+    count: 0,
+  },
   states: {
     inactive: {
       on: {
-        TOGGLE: "pending",
+        TOGGLE: {
+          target: "pending",
+          actions: assign({
+            count: (context, event) => {
+              return context.count + 1;
+            },
+          }),
+        },
       },
     },
     pending: {
@@ -197,7 +207,13 @@ const alarmMachine = createMachine({
 });
 
 export const ScratchApp = () => {
-  const [{ value: status }, send] = useMachine(alarmMachine);
+  const [
+    {
+      value: status,
+      context: { count },
+    },
+    send,
+  ] = useMachine(alarmMachine);
 
   useEffect(() => {
     if (status === "pending") {
@@ -214,6 +230,7 @@ export const ScratchApp = () => {
             hour: "2-digit",
             minute: "2-digit",
           })}
+          ({count})
         </div>
         <div
           className="alarmToggle"
