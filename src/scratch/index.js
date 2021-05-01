@@ -174,6 +174,36 @@ import { useReducer } from "react";
 //   );
 // };
 
+const isMorning = () => {
+  return new Date().getHours() < 12;
+};
+
+const greetMachine = createMachine(
+  {
+    initial: "unknonwn",
+    states: {
+      unknonwn: {
+        always: [
+          {
+            cond: "isMorning",
+            target: "morning",
+          },
+          {
+            target: "day",
+          },
+        ],
+      },
+      morning: {},
+      day: {},
+    },
+  },
+  {
+    guards: {
+      isMorning,
+    },
+  }
+);
+
 const increment = assign({
   count(context, event) {
     return context.count + 1;
@@ -230,6 +260,7 @@ const alarmMachine = createMachine(
 );
 
 export const ScratchApp = () => {
+  const [greetState] = useMachine(greetMachine);
   const [
     {
       value: status,
@@ -247,6 +278,7 @@ export const ScratchApp = () => {
 
   return (
     <div className="scratch">
+      <h2>Good {greetState.value === "morning" ? "Morning" : "Day"}!</h2>
       <div className="alarm">
         <div className="alarmTime">
           {new Date().toLocaleTimeString("en-US", {
