@@ -174,6 +174,16 @@ import { useReducer } from "react";
 //   );
 // };
 
+const increment = assign({
+  count(context, event) {
+    return context.count + 1;
+  },
+});
+
+const tooMuch = (context, event) => {
+  return context.count < 5;
+};
+
 const alarmMachine = createMachine(
   {
     initial: "inactive",
@@ -183,10 +193,16 @@ const alarmMachine = createMachine(
     states: {
       inactive: {
         on: {
-          TOGGLE: {
-            target: "pending",
-            actions: "increment",
-          },
+          TOGGLE: [
+            {
+              target: "pending",
+              actions: "increment",
+              cond: "tooMuch",
+            },
+            {
+              target: "rejected",
+            },
+          ],
         },
       },
       pending: {
@@ -200,15 +216,15 @@ const alarmMachine = createMachine(
           TOGGLE: "inactive",
         },
       },
+      rejected: {},
     },
   },
   {
     actions: {
-      increment: assign({
-        count(context, event) {
-          return context.count + 1;
-        },
-      }),
+      increment,
+    },
+    guards: {
+      tooMuch,
     },
   }
 );
@@ -237,7 +253,7 @@ export const ScratchApp = () => {
             hour: "2-digit",
             minute: "2-digit",
           })}
-          ({count})
+          ({count}) ({status})
         </div>
         <div
           className="alarmToggle"
