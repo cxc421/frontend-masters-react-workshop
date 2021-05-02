@@ -1,9 +1,19 @@
-import { createMachine, assign } from 'xstate';
+import { createMachine, assign } from "xstate";
 
 const timerExpired = (ctx) => ctx.elapsed >= ctx.duration;
+const resetTimer = assign({
+  duration: 5,
+  elapsed: 0,
+});
+const increaseElapsed = assign({
+  elapsed: (ctx) => ctx.elapsed + ctx.interval,
+});
+const increaseDuration = assign({
+  duration: (ctx) => ctx.duration + 60,
+});
 
 export const timerMachine = createMachine({
-  initial: 'idle',
+  initial: "idle",
   context: {
     duration: 5,
     elapsed: 0,
@@ -11,42 +21,62 @@ export const timerMachine = createMachine({
   },
   states: {
     idle: {
-      entry: assign({
-        duration: 5,
-        elapsed: 0,
-      }),
+      entry: resetTimer,
       on: {
-        TOGGLE: 'running',
+        TOGGLE: "running",
       },
     },
     running: {
       // Add the `normal` and `overtime` nested states here.
       // Don't forget to add the initial state (`normal`)!
-      // ...
-
+      initial: "normal",
+      states: {
+        normal: {
+          always: {
+            cond: timerExpired,
+            target: "overtime",
+          },
+          on: {
+            // forbiddent parent RESET event if state in runnimg.normal
+            RESET: undefined,
+          },
+        },
+        overtime: {
+          // after 2 seconds, jump to timesUp state
+          after: {
+            2000: "timesUp",
+          },
+          on: {
+            // forbiddent TOGGLE event if state in runnimg.overtime
+            TOGGLE: undefined,
+          },
+        },
+        // declare this is final state
+        timesUp: {
+          type: "final",
+        },
+      },
+      // when entering final state, jumpt to idle state
+      onDone: "idle",
       on: {
         TICK: {
-          actions: assign({
-            elapsed: (ctx) => ctx.elapsed + ctx.interval,
-          }),
+          actions: increaseElapsed,
         },
-        TOGGLE: 'paused',
+        TOGGLE: "paused",
         ADD_MINUTE: {
-          actions: assign({
-            duration: (ctx) => ctx.duration + 60,
-          }),
+          actions: increaseDuration,
         },
       },
     },
     paused: {
       on: {
-        TOGGLE: 'running',
+        TOGGLE: "running",
       },
     },
   },
   on: {
     RESET: {
-      target: '.idle',
+      target: ".idle",
     },
   },
 });

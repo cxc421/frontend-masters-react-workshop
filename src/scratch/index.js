@@ -242,6 +242,15 @@ const alarmMachine = createMachine(
         },
       },
       active: {
+        initial: "normal",
+        states: {
+          normal: {
+            after: {
+              1000: "looksGood",
+            },
+          },
+          looksGood: {},
+        },
         on: {
           TOGGLE: "inactive",
         },
@@ -261,13 +270,9 @@ const alarmMachine = createMachine(
 
 export const ScratchApp = () => {
   const [greetState] = useMachine(greetMachine);
-  const [
-    {
-      value: status,
-      context: { count },
-    },
-    send,
-  ] = useMachine(alarmMachine);
+  const [state, send] = useMachine(alarmMachine);
+  const { value: status } = state;
+  const { count } = state.context;
 
   useEffect(() => {
     if (status === "pending") {
@@ -285,11 +290,13 @@ export const ScratchApp = () => {
             hour: "2-digit",
             minute: "2-digit",
           })}
-          ({count}) ({status})
+          ({count}) ({state.toStrings().join("")})
         </div>
         <div
           className="alarmToggle"
-          data-active={status === "active" || undefined}
+          data-active={
+            state.toStrings().join("").startsWith("active") || undefined
+          }
           style={{
             opacity: status === "pending" ? 0.5 : 1,
           }}
