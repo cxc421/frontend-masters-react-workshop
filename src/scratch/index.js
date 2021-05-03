@@ -260,6 +260,7 @@ const alarmMachine = createMachine(
         },
       },
       active: {
+        entry: sendParent({ type: "ACTIVE" }),
         on: {
           TOGGLE: "inactive",
         },
@@ -277,45 +278,87 @@ const alarmMachine = createMachine(
   }
 );
 
-export const ScratchApp = () => {
-  const [greetState] = useMachine(greetMachine);
+const Alarm = ({ alarmRef }) => {
+  // const [
+  //   {
+  //     value: status,
+  //     context: { count },
+  //   },
+  //   send,
+  // ] = useMachine(alarmMachine);
+
   const [
     {
       value: status,
       context: { count },
     },
     send,
-  ] = useMachine(alarmMachine);
+  ] = useService(alarmRef);
 
-  // useEffect(() => {
-  //   if (status === "pending") {
-  //     const timer = setTimeout(() => send({ type: "SUCCESS" }), 2000);
-  //     return () => clearTimeout(timer);
-  //   }
-  // }, [status, send]);
+  return (
+    <div className="alarm">
+      <div className="alarmTime">
+        {new Date().toLocaleTimeString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
+        })}
+        ({count}) ({status})
+      </div>
+      <div
+        className="alarmToggle"
+        data-active={status === "active" || undefined}
+        style={{
+          opacity: status === "pending" ? 0.5 : 1,
+        }}
+        onClick={() => {
+          send({ type: "TOGGLE" });
+        }}
+      ></div>
+    </div>
+  );
+};
+
+const alarmsMachine = createMachine({
+  context: {
+    alarms: [],
+  },
+  initial: "active",
+  states: {
+    active: {
+      on: {
+        ADD_ALARM: {
+          actions: assign({
+            alarms: (ctx, evt) => {
+              const alarm = spawn(alarmMachine);
+              return ctx.alarms.concat(alarm);
+            },
+          }),
+        },
+        ACTIVE: {
+          actions: (ctx, evt) => {
+            console.log("RECEIVED:", evt);
+          },
+        },
+      },
+    },
+  },
+});
+
+export const ScratchApp = () => {
+  const [greetState] = useMachine(greetMachine);
+  const [alarmsState, sendAlarmsEvent] = useMachine(alarmsMachine);
+
+  // console.log(alarmsState);
 
   return (
     <div className="scratch">
       <h2>Good {greetState.value === "morning" ? "Morning" : "Day"}!</h2>
-      <div className="alarm">
-        <div className="alarmTime">
-          {new Date().toLocaleTimeString("en-US", {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
-          ({count}) ({status})
-        </div>
-        <div
-          className="alarmToggle"
-          data-active={status === "active" || undefined}
-          style={{
-            opacity: status === "pending" ? 0.5 : 1,
-          }}
-          onClick={() => {
-            send({ type: "TOGGLE" });
-          }}
-        ></div>
+      <div>
+        <button onClick={() => sendAlarmsEvent("ADD_ALARM")}>Add Alarm</button>
       </div>
+      {alarmsState.context.alarms.map((alarm, i) => (
+        <Alarm key={i} alarmRef={alarm} />
+      ))}
     </div>
   );
 };
