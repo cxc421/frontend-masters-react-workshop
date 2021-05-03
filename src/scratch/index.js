@@ -210,9 +210,14 @@ const increment = assign({
   },
 });
 
-const tooMuch = (context, event) => {
+const notTooMuch = (context, event) => {
   return context.count < 5;
 };
+
+const saveAlarm = () =>
+  new Promise((res) => {
+    setTimeout(res, 2000, 100);
+  });
 
 const alarmMachine = createMachine(
   {
@@ -227,7 +232,7 @@ const alarmMachine = createMachine(
             {
               target: "pending",
               actions: "increment",
-              cond: "tooMuch",
+              cond: "notTooMuch",
             },
             {
               target: "rejected",
@@ -236,8 +241,21 @@ const alarmMachine = createMachine(
         },
       },
       pending: {
+        invoke: {
+          src: (ctx, evt) => saveAlarm(),
+          onDone: [
+            {
+              cond: (ctx, evt) => evt.data > 99,
+              target: "active",
+            },
+            {
+              target: "rejected",
+            },
+          ],
+          onError: "rejected",
+        },
         on: {
-          SUCCESS: "active",
+          // SUCCESS: "active",
           TOGGLE: "inactive",
         },
       },
@@ -254,7 +272,7 @@ const alarmMachine = createMachine(
       increment,
     },
     guards: {
-      tooMuch,
+      notTooMuch,
     },
   }
 );
@@ -269,12 +287,12 @@ export const ScratchApp = () => {
     send,
   ] = useMachine(alarmMachine);
 
-  useEffect(() => {
-    if (status === "pending") {
-      const timer = setTimeout(() => send({ type: "SUCCESS" }), 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [status, send]);
+  // useEffect(() => {
+  //   if (status === "pending") {
+  //     const timer = setTimeout(() => send({ type: "SUCCESS" }), 2000);
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [status, send]);
 
   return (
     <div className="scratch">
