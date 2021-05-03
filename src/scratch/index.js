@@ -210,9 +210,14 @@ const increment = assign({
   },
 });
 
-const tooMuch = (context, event) => {
+const notTooMuch = (context, event) => {
   return context.count < 5;
 };
+
+const saveAlarm = () =>
+  new Promise((res) => {
+    setTimeout(res, 2000, 100);
+  });
 
 const alarmMachine = createMachine(
   {
@@ -227,7 +232,7 @@ const alarmMachine = createMachine(
             {
               target: "pending",
               actions: "increment",
-              cond: "tooMuch",
+              cond: "notTooMuch",
             },
             {
               target: "rejected",
@@ -236,8 +241,21 @@ const alarmMachine = createMachine(
         },
       },
       pending: {
+        invoke: {
+          src: (ctx, evt) => saveAlarm(),
+          onDone: [
+            {
+              cond: (ctx, evt) => evt.data > 99,
+              target: "active",
+            },
+            {
+              target: "rejected",
+            },
+          ],
+          onError: "rejected",
+        },
         on: {
-          SUCCESS: "active",
+          // SUCCESS: "active",
           TOGGLE: "inactive",
         },
       },
@@ -251,6 +269,7 @@ const alarmMachine = createMachine(
           },
           looksGood: {},
         },
+        entry: sendParent({ type: "ACTIVE" }),
         on: {
           TOGGLE: "inactive",
         },
@@ -263,48 +282,90 @@ const alarmMachine = createMachine(
       increment,
     },
     guards: {
-      tooMuch,
+      notTooMuch,
     },
   }
 );
 
+const Alarm = ({ alarmRef }) => {
+  // const [
+  //   {
+  //     value: status,
+  //     context: { count },
+  //   },
+  //   send,
+  // ] = useMachine(alarmMachine);
+
+  const [state, send] = useService(alarmRef);
+  const {
+    context: { count },
+  } = state;
+  const status = state.toStrings().join("");
+
+  return (
+    <div className="alarm">
+      <div className="alarmTime">
+        {new Date().toLocaleTimeString("en-US", {
+          hour: "2-digit",
+          minute: "2-digit",
+        })}
+        ({count}) ({status})
+      </div>
+      <div
+        className="alarmToggle"
+        data-active={status.startsWith("active") || undefined}
+        style={{
+          opacity: status === "pending" ? 0.5 : 1,
+        }}
+        onClick={() => {
+          send({ type: "TOGGLE" });
+        }}
+      ></div>
+    </div>
+  );
+};
+
+const alarmsMachine = createMachine({
+  context: {
+    alarms: [],
+  },
+  initial: "active",
+  states: {
+    active: {
+      on: {
+        ADD_ALARM: {
+          actions: assign({
+            alarms: (ctx, evt) => {
+              const alarm = spawn(alarmMachine);
+              return ctx.alarms.concat(alarm);
+            },
+          }),
+        },
+        ACTIVE: {
+          actions: (ctx, evt) => {
+            console.log("RECEIVED:", evt);
+          },
+        },
+      },
+    },
+  },
+});
+
 export const ScratchApp = () => {
   const [greetState] = useMachine(greetMachine);
-  const [state, send] = useMachine(alarmMachine);
-  const { value: status } = state;
-  const { count } = state.context;
+  const [alarmsState, sendAlarmsEvent] = useMachine(alarmsMachine);
 
-  useEffect(() => {
-    if (status === "pending") {
-      const timer = setTimeout(() => send({ type: "SUCCESS" }), 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [status, send]);
+  // console.log(alarmsState);
 
   return (
     <div className="scratch">
       <h2>Good {greetState.value === "morning" ? "Morning" : "Day"}!</h2>
-      <div className="alarm">
-        <div className="alarmTime">
-          {new Date().toLocaleTimeString("en-US", {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
-          ({count}) ({state.toStrings().join("")})
-        </div>
-        <div
-          className="alarmToggle"
-          data-active={
-            state.toStrings().join("").startsWith("active") || undefined
-          }
-          style={{
-            opacity: status === "pending" ? 0.5 : 1,
-          }}
-          onClick={() => {
-            send({ type: "TOGGLE" });
-          }}
-        ></div>
+      <div>
+        <button onClick={() => sendAlarmsEvent("ADD_ALARM")}>Add Alarm</button>
       </div>
+      {alarmsState.context.alarms.map((alarm, i) => (
+        <Alarm key={i} alarmRef={alarm} />
+      ))}
     </div>
   );
 };

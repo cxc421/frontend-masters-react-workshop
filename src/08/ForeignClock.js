@@ -1,18 +1,18 @@
-import { useMachine, useService } from '@xstate/react';
-import { useContext, useEffect } from 'react';
-import { useQuery } from 'react-query';
-import { LocalTimeContext } from './Clock';
-import { foreignClockMachine } from './foreignClockMachine';
-import mockTimezones from './timezones.json';
+import { useMachine, useService } from "@xstate/react";
+import { useContext, useEffect } from "react";
+import { useQuery } from "react-query";
+import { LocalTimeContext } from "./Clock";
+import { foreignClockMachine } from "./foreignClockMachine";
+import mockTimezones from "./timezones.json";
 
 export function ForeignClock() {
   const localTimeService = useContext(LocalTimeContext);
   const [localTimeState] = useService(localTimeService);
   const [state, send] = useMachine(foreignClockMachine);
 
-  const { data } = useQuery('timezones', () => {
+  const { data } = useQuery("timezones", () => {
     // return Promise.resolve(mockTimezones);
-    return fetch('http://worldtimeapi.org/api/timezone').then((data) =>
+    return fetch("http://worldtimeapi.org/api/timezone").then((data) =>
       data.json()
     );
   });
@@ -20,7 +20,7 @@ export function ForeignClock() {
   useEffect(() => {
     if (data) {
       send({
-        type: 'TIMEZONES.LOADED',
+        type: "TIMEZONES.LOADED",
         data,
       });
     }
@@ -28,7 +28,7 @@ export function ForeignClock() {
 
   useEffect(() => {
     send({
-      type: 'LOCAL.UPDATE',
+      type: "LOCAL.UPDATE",
       time: localTimeState.context.time,
     });
   }, [localTimeState, send]);
@@ -37,25 +37,26 @@ export function ForeignClock() {
 
   return (
     <div className="foreignItem">
-      {(state.matches('timezonesLoaded') || timezones) && (
+      {(state.matches("timezonesLoaded") || timezones) && (
         <>
           <select
             className="foreignCity"
             onChange={(e) => {
               send({
-                type: 'TIMEZONE.CHANGE',
+                type: "TIMEZONE.CHANGE",
                 value: e.target.value,
               });
             }}
+            defaultValue={-1}
           >
-            <option disabled selected>
+            <option value="-1" disabled>
               Select a timezone
             </option>
             {state.context.timezones.map((timezone) => {
               return <option key={timezone}>{timezone}</option>;
             })}
           </select>
-          <strong className="foreignTime">{foreignTime || '--'}</strong>
+          <strong className="foreignTime">{foreignTime || "--"}</strong>
         </>
       )}
     </div>
